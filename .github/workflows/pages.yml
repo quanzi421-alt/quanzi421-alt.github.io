@@ -1,0 +1,49 @@
+name: Deploy FITZ public website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - fitz-github-pages-site.zip
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout public snapshot
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Unpack prebuilt public website
+        run: |
+          unzip -q fitz-github-pages-site.zip -d dist
+          test -f dist/index.html
+          test -f dist/media/index.html
+          test -f dist/collection/index.html
+          test -f dist/.nojekyll
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload public website only
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
